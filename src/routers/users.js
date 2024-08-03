@@ -7,12 +7,18 @@ import {
   getAllUsersController,
   loginUserController,
   resetPasswordController,
-  sendResetEmailController,
   logoutUserController,
   refreshUserSessionController,
+  requestResetEmailController,
 } from '../controllers/users.js';
 import { ctrlWrapper } from '../utils/ctrlWrapper.js';
-import { loginUserSchema, registerUserSchema, resetPasswordSchema, sendResetEmailSchema, updateUserSchema } from '../validation/users.js';
+import {
+  loginUserSchema,
+  registerUserSchema,
+  requestResetEmailSchema,
+  resetPasswordSchema,
+  updateUserSchema
+} from '../validation/users.js';
 import { validateBody } from '../middlewares/validateBody.js';
 import { isValidId } from '../middlewares/isValidId.js';
 
@@ -55,16 +61,15 @@ router.post(
 );
 
 router.post(
-  '/send-reset-email',
-  validateBody(sendResetEmailSchema),
-  ctrlWrapper(sendResetEmailController),
+  '/request-reset-email',
+  validateBody(requestResetEmailSchema),
+  ctrlWrapper(requestResetEmailController),
 );
 
 router.post(
-  '/reset-pwd',
+  '/reset-password',
   validateBody(resetPasswordSchema),
   ctrlWrapper(resetPasswordController),
 );
-
 
 export default router;

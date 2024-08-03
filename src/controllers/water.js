@@ -14,7 +14,7 @@ export const getWaterController = async (req, res, next) => {
   res.status(200).json({
     status: 200,
     message: 'Successfully found data about water!',
-    data: contacts,
+    data: water,
   });
 };
 
@@ -26,7 +26,7 @@ export const getWaterByIdController = async (req, res, next) => {
     throw createHttpError(404, 'Data about water not found');
   }
 
-  res.json({
+  res.status(200).json({
     status: 200,
     message: `Successfully found data about water with id ${waterId}!`,
     data: water,
@@ -43,28 +43,27 @@ export const createWaterController = async (req, res) => {
     });
 };
 
-export const deleteWaterController = async (req, res) => {
+export const deleteWaterController = async (req, res, next) => {
   const { waterId } = req.params;
     const water = await deleteWater(waterId);
 
   if (!water) {
-    next(createHttpError(404, 'Data about water not found'));
-    return;
+    throw createHttpError(404, 'Data about water not found');
+
   }
 
   res.status(204).send();
 };
 
-export const patchWaterController = async (req, res) => {
+export const patchWaterController = async (req, res, next) => {
   const { waterId } = req.params;
   const result = await updateWater(waterId, req.body);
 
   if (!result) {
-    next(createHttpError(404, 'Data about water not found'));
-    return;
+    throw createHttpError(404, 'Data about water not found');
   }
 
-  res.json({
+  res.status(200).json({
     status: 200,
     message: `Successfully updated data about water!`,
     data: result.water,

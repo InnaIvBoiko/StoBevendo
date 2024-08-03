@@ -1,6 +1,8 @@
 import createHttpError from 'http-errors';
-import { getAllUsers, registerUser, getUserById, updateUser, loginUser, refreshUsersSession, logoutUser, sendResetToken, resetPassword } from '../services/users.js';
+import { getAllUsers, registerUser, getUserById, updateUser, loginUser, refreshUsersSession, logoutUser, resetPassword, requestResetToken } from '../services/users.js';
 import { THIRTY_DAYS } from '../constants/index.js';
+import { setupSessionCookies } from '../utils/setupSessionCookies.js';
+import { setupSession } from '../utils/setupSession.js';
 
 export const getAllUsersController = async (req, res, next) => {
   const user = await getAllUsers();
@@ -9,14 +11,14 @@ export const getAllUsersController = async (req, res, next) => {
     throw createHttpError(404, 'User not found');
   }
 
-  res.json({
+  res.status(200).json({
     status: 200,
     message: `Successfully found number of all users`,
     data: user,
   });
 };
 
-export const registerUserController = async (req, res) => {
+export const registerUserController = async (req, res, next) => {
     const user = await registerUser(req.body);
 
     res.status(201).json({
@@ -34,44 +36,44 @@ export const getUserByIdController = async (req, res, next) => {
     throw createHttpError(404, 'User not found');
   }
 
-  res.json({
+  res.status(200).json({
     status: 200,
     message: `Successfully found user with id ${userId}!`,
     data: user,
   });
 };
 
-export const patchUserController = async (req, res) => {
+export const patchUserController = async (req, res, next) => {
   const { userId } = req.params;
   const result = await updateUser(userId, req.body);
 
   if (!result) {
-    next(createHttpError(404, 'User not found'));
-    return;
+    throw createHttpError(404, 'User not found');
   }
 
-  res.json({
+  res.status(200).json({
     status: 200,
     message: `Successfully updated user!`,
     data: result.user,
   });
 };
 
-export const loginUserController = async (req, res) => {
+export const loginUserController = async (req, res, next) => {
   const session = await loginUser(req.body);
 
-  // setupSessionCookies(res, session);
+  setupSessionCookies(res, session);
 
   res.cookie('refreshToken', session.refreshToken, {
     httpOnly: true,
     expires: new Date(Date.now() + THIRTY_DAYS),
   });
+
   res.cookie('sessionId', session._id, {
     httpOnly: true,
     expires: new Date(Date.now() + THIRTY_DAYS),
   });
 
-  res.json({
+  res.status(200).json({
     status: 200,
     message: 'Successfully logged in an user!',
     data: {
@@ -80,15 +82,15 @@ export const loginUserController = async (req, res) => {
   });
 };
 
-export const refreshUserSessionController = async (req, res) => {
+export const refreshUserSessionController = async (req, res, next) => {
   const session = await refreshUsersSession({
     sessionId: req.cookies.sessionId,
     refreshToken: req.cookies.refreshToken,
   });
 
-  setupSessionCookies(res, session);
+  setupSession(res, session);
 
-  res.json({
+  res.status(200).json({
     status: 200,
     message: 'Successfully refreshed a session!',
     data: {
@@ -97,7 +99,7 @@ export const refreshUserSessionController = async (req, res) => {
   });
 };
 
-export const logoutUserController = async (req, res) => {
+export const logoutUserController = async (req, res, next) => {
   if (req.cookies.sessionId) {
     await logoutUser(req.cookies.sessionId);
   }
@@ -108,8 +110,9 @@ export const logoutUserController = async (req, res) => {
   res.status(204).send();
 };
 
-export const sendResetEmailController = async (req, res) => {
-  await sendResetToken(req.body.email);
+export const requestResetEmailController = async (req, res, next) => {
+  await requestResetToken(req.body.email);
+
   res.status(200).json({
     status: 200,
     message: 'Reset password email has been successfully sent.',
@@ -117,9 +120,10 @@ export const sendResetEmailController = async (req, res) => {
   });
 };
 
-export const resetPasswordController = async (req, res) => {
+export const resetPasswordController = async (req, res, next) => {
   await resetPassword(req.body);
-  res.json({
+
+  res.status(200).json({
     status: 200,
     message: 'Password has been successfully reset.',
     data: {},

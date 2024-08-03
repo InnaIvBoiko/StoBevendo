@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { authenticate } from '../middlewares/authenticate.js';
 
 import {
     getWaterController,
@@ -13,6 +14,8 @@ import { createWaterSchema, updateWaterSchema } from '../validation/water.js';
 import { isValidId } from '../middlewares/isValidId.js';
 
 const router = Router();
+
+router.use(authenticate);
 
 router.get('/', ctrlWrapper(getWaterController));
 

@@ -1,18 +1,22 @@
 import createHttpError from 'http-errors';
 import { randomBytes } from 'crypto';
 import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
+import handlebars from 'handlebars';
+import path from 'node:path';
+import fs from 'node:fs/promises';
+
 import { UsersCollection } from '../db/models/users.js';
 import { SessionsCollection } from '../db/models/session.js';
-import { THIRTY_DAYS, FIFTEEN_MINUTES } from '../constants/index.js';
+import { THIRTY_DAYS, FIFTEEN_MINUTES, TEMPLATES_DIR } from '../constants/index.js';
+import { createSession } from '../utils/createSession.js';
+import { SMTP } from '../constants/index.js';
+import { env } from '../utils/env.js';
+import { sendEmail } from '../utils/sendMail.js';
 
 export const getAllUsers = async () => {
   const users = await UsersCollection.find();
   return users.length;
-};
-
-export const getUserById = async (userId) => {
-  const user = await UsersCollection.findById(userId);
-  return user;
 };
 
 export const registerUser = async (payload) => {
@@ -25,6 +29,11 @@ export const registerUser = async (payload) => {
     ...payload,
     password: encryptedPassword,
   });
+};
+
+export const getUserById = async (userId) => {
+  const user = await UsersCollection.findById(userId);
+  return user;
 };
 
 export const updateUser = async (userId, payload, options = {}) => {
@@ -73,10 +82,10 @@ export const loginUser = async (payload) => {
   });
 };
 
-
 export const logoutUser = async (sessionId) => {
   await SessionsCollection.deleteOne({ _id: sessionId });
 };
+
 
 export const refreshUsersSession = async ({ sessionId, refreshToken }) => {
   const session = await SessionsCollection.findOne({
@@ -105,7 +114,7 @@ export const refreshUsersSession = async ({ sessionId, refreshToken }) => {
   });
 };
 
-export const sendResetToken = async (email) => {
+export const requestResetToken = async (email) => {
   const user = await UsersCollection.findOne({ email });
   if (!user) {
     throw createHttpError(404, 'User not found');
@@ -118,13 +127,13 @@ export const sendResetToken = async (email) => {
     },
     env('JWT_SECRET'),
     {
-      expiresIn: '5m',
+      expiresIn: '15m',
     },
   );
 
   const resetPasswordTemplatePath = path.join(
     TEMPLATES_DIR,
-    'reset-password.html',
+    'reset-password-email.html',
   );
 
   const templateSource = (
